@@ -1,0 +1,10 @@
+// Minimal Renovate config for rafelbev/localai-beellama-backend.
+//
+// An empty object is a valid .renovaterc.json5 — it only opts the repo into
+// the self-hosted Renovate run (see garage-ops .github/workflows/renovate.yaml,
+// RENOVATE_REPOSITORIES) with Renovate's defaults.
+//
+// TODO(T3/T4): extend once the Dockerfile / Go modules / CI exist — e.g.
+// package-rules for the ghcr.io/anbeeld/beellama.cpp base image and Go
+// modules, and a merge strategy for the CI workflow file.
+{}
