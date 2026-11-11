@@ -79,8 +79,16 @@ picks itself.
 ## CI
 
 GitHub Actions on a self-hosted scale set (see the `garage-ops` repo,
-`kubernetes/apps/github-runners/`): builds the image, smoke-tests it, and
-pushes to GHCR.
+`kubernetes/apps/github-runners/`): `.github/workflows/ci.yaml` runs on the
+`localai-beellama-backend` runner scale set (dind mode) and, on every push to
+`main`, builds the image, publishes it to
+`ghcr.io/rafelbev/localai-beellama-backend:latest`, pulls the published image
+back (verifying registry read), and runs a CPU-only smoke test
+(`smoke/test.sh`): it downloads Qwen2-0.5B q4_k_m (~380 MB), runs the backend
+container, and drives the gRPC shim with `smokeclient`
+(Health, LoadModel, Predict, Status, Free). Tagged releases (`vX.Y.Z`) are
+published under their tag name. CPU-only is deliberate — T3 verified the
+small model runs without a GPU, and the runner pod has no GPU.
 
 ## License
 

@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-publish-smoke:
+    name: Build, publish, smoke-test
+    runs-on: localai-beellama-backend
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Containers Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Compute image tags
+        id: tags
+        run: |
+          # Release tags (vX.Y.Z) are published under the git tag name;
+          # pushes to main are published as :latest.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "tags=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push to GHCR
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha
+
+      - name: Pull the published image (verifies GHCR read-back)
+        run: |
+          docker pull "ghcr.io/rafelbev/localai-beellama-backend:${{ steps.tags.outputs.tags }}"
+
+      - name: Smoke test (CPU-only)
+        env:
+          IMAGE_TAG: ${{ steps.tags.outputs.tags }}
+        run: ./smoke/test.sh
