@@ -1,0 +1,16 @@
+# LocalAI gallery entry for the beellama backend.
+#
+# Served at:
+#   github:rafelbev/localai-beellama-backend/gallery.yaml@main
+# which resolves to:
+#   https://raw.githubusercontent.com/rafelbev/localai-beellama-backend/main/gallery.yaml
+#
+# Private-repo access is granted via a credentials entry
+# (match: github.com/rafelbev, bearer_env: GITHUB_TOKEN) — see research/03.
+
+- name: "beellama"
+  description: "beellama.cpp (KVarN KV-cache) LLM backend"
+  uri: "ghcr.io/rafelbev/localai-beellama-backend:v0.1.0"
+  alias: "beellama"
+  tags: ["llm", "text-generation"]
+  version: "0.1.0"
