@@ -3,6 +3,8 @@
 *.test
 *.out
 vendor/
+# Generated protobuf stubs (created by protoc in the Docker build)
+backend/pb/
 
 # Editors
 .idea/

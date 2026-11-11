@@ -39,21 +39,31 @@ image tag bump. The gRPC surface is a hard LocalAI contract
 
 ## How to build
 
-The build system (Dockerfile, `run.sh`, the Go shim) lands in a follow-up
-change. Until then the repo is skeleton + config only. Expected layout:
+The backend is built by the multi-stage `Dockerfile`:
 
 ```
-Dockerfile            # FROM ghcr.io/anbeeld/beellama.cpp:server-cuda13-v0.4.9
-run.sh                # LocalAI entry point: exec "$CURDIR"/$BINARY "$@"
-metadata.json         # generated at build (name/alias only)
-backend/backend.proto # LocalAI backend gRPC contract
-main.go, go.mod, ...   # the gRPC shim
+Dockerfile            # Stage 1 builds the Go shim; Stage 2 drops it into the
+                      #   base image with run.sh + metadata.json
+run.sh                # LocalAI entry point: exec "$CURDIR"/beellama-shim "$@"
+metadata.json         # minimal install metadata (LocalAI rewrites at install)
+backend/backend.proto # LocalAI backend gRPC contract (verbatim, + go_package)
+backend/*.go          # the gRPC shim (main, server, shim, options)
+backend/go.mod        # Go module
 gallery.yaml          # backend gallery entry (served via a `github:` URI)
 ```
 
+Stage 1 (`golang:alpine`) runs `protoc` over `backend.proto` to generate the
+`pb` package, then builds a static `beellama-shim` binary. Stage 2 copies
+`beellama-shim`, `run.sh`, and `metadata.json` into the image root of
+`ghcr.io/anbeeld/beellama.cpp:server-cuda13-v0.4.9`.
+
 `run.sh` receives `--addr 0.0.0.0:<port>` from the LocalAI core (which dials
 `127.0.0.1:<port>` over gRPC and polls `Health`), so the shim always parses
-`--addr` and binds there.
+`--addr` and binds there. On `LoadModel` the shim spawns the bundled
+`app/llama-server` (relative to the backend dir), waits for its `/health`
+endpoint to report ready, then serves `Predict`/`PredictStream`/`Embedding`
+by proxying to the server's OpenAI-compatible HTTP API on a loopback port it
+picks itself.
 
 ## Docs
 
