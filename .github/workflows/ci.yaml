@@ -18,6 +18,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # The dind sidecar's dockerd takes a few seconds to boot and create
+      # /var/run/docker.sock. The runner can pick up a job faster than that,
+      # so we explicitly wait for the daemon to be ready before touching it.
+      - name: Wait for Docker daemon
+        run: |
+          echo "Waiting for the dind Docker daemon to be ready..."
+          for i in $(seq 1 60); do
+            if docker info >/dev/null 2>&1; then
+              echo "Docker daemon is ready (attempt $i)"
+              break
+            fi
+            echo "Docker not ready yet (attempt $i/60)"
+            sleep 2
+          done
+          docker version
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
