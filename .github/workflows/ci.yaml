@@ -49,10 +49,12 @@ jobs:
         run: |
           # Release tags (vX.Y.Z) are published under the git tag name;
           # pushes to main are published as :latest.
+          # The full registry/repo prefix is required so build-push-action
+          # pushes to GHCR (not Docker Hub).
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            echo "tags=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+            echo "tags=ghcr.io/rafelbev/localai-beellama-backend:$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
           else
-            echo "tags=latest" >> "$GITHUB_OUTPUT"
+            echo "tags=ghcr.io/rafelbev/localai-beellama-backend:latest" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and push to GHCR
@@ -66,9 +68,9 @@ jobs:
 
       - name: Pull the published image (verifies GHCR read-back)
         run: |
-          docker pull "ghcr.io/rafelbev/localai-beellama-backend:${{ steps.tags.outputs.tags }}"
+          docker pull "${{ steps.tags.outputs.tags }}"
 
       - name: Smoke test (CPU-only)
         env:
-          IMAGE_TAG: ${{ steps.tags.outputs.tags }}
+          IMAGE: ${{ steps.tags.outputs.tags }}
         run: ./smoke/test.sh

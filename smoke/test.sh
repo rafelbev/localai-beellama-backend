@@ -11,8 +11,7 @@
 # egress to huggingface.co.
 set -euo pipefail
 
-: "${IMAGE_TAG:=latest}"
-IMAGE="ghcr.io/rafelbev/localai-beellama-backend:${IMAGE_TAG}"
+: "${IMAGE:=ghcr.io/rafelbev/localai-beellama-backend:latest}"
 
 MODEL_FILE="qwen2-0_5b-instruct-q4_k_m.gguf"
 MODEL_URL="https://huggingface.co/Qwen/Qwen2-0.5B-Instruct-GGUF/resolve/main/${MODEL_FILE}"
