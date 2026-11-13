@@ -93,3 +93,5 @@ small model runs without a GPU, and the runner pod has no GPU.
 ## License
 
 MIT — matching upstream beellama.cpp. See [LICENSE](LICENSE).
+
+<!-- ci-test: verifying runner command fix (2026-11-13) -->
