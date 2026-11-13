@@ -1,1 +1,1 @@
-test
+<!-- ci-test: verifying GITHUB_TOKEN with packages:write scope (2026-11-13) -->
