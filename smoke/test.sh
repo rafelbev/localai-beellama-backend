@@ -23,8 +23,11 @@ MODEL_DIR="$(mktemp -d)"
 curl -fSL --progress-bar -o "${MODEL_DIR}/${MODEL_FILE}" "$MODEL_URL"
 
 # 2. Stage the model into a docker volume visible to the backend container.
+#    docker cp can only target containers, not volumes — use a temp container.
 docker volume create beellama-models
-docker cp "${MODEL_DIR}/${MODEL_FILE}" "beellama-models:/${MODEL_FILE}"
+STAGING=$(docker create -v beellama-models:/models alpine true)
+docker cp "${MODEL_DIR}/${MODEL_FILE}" "${STAGING}:/models/${MODEL_FILE}"
+docker rm "${STAGING}" >/dev/null
 
 # 3. Build the smoke client from the repo source.
 docker build -f smoke/Dockerfile -t beellama-smokeclient .
