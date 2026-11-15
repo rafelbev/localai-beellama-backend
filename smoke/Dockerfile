@@ -4,7 +4,7 @@
 #
 # The pb/ package is generated at build time from backend.proto, exactly
 # like the main Dockerfile (kept in sync with it).
-FROM golang:1.24-alpine
+FROM golang:1.27-alpine
 
 RUN apk add --no-cache protoc
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.1 \
