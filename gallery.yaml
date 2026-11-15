@@ -10,7 +10,7 @@
 
 - name: "beellama"
   description: "beellama.cpp (KVarN KV-cache) LLM backend"
-  uri: "ghcr.io/rafelbev/localai-beellama-backend:v0.1.2"
+  uri: "ghcr.io/rafelbev/localai-beellama-backend:v0.1.3"
   alias: "beellama"
   tags: ["llm", "text-generation"]
-  version: "0.1.2"
+  version: "0.1.3"
