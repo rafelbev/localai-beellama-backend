@@ -24,14 +24,18 @@ func osEnviron() []string {
 //	Model            -> --model <path>
 //	ContextSize      -> --ctx-size <n>
 //	Seed             -> --seed <n>
-//	NBatch           -> --batch <n>
-//	MLock            -> --mlock
-//	MMap             -> --mmap
-//	NUMA             -> --numa
+//	NBatch           -> --batch-size <n>
+//	MLock/MMap       -> --load-mode mlock | mmap | mmap+mlock
+//	NUMA             -> --numa distribute
 //	NGPULayers       -> --n-gpu-layers <n>
 //	Threads          -> --threads <n>
 //	FlashAttention   -> --flash-attn on (string field in proto)
 //	EnvVars          -> environment variables (handled separately)
+//
+// The flag names must match the bundled llama-server's --help output
+// (beellama.cpp server-cuda13-v0.4.9): the old --mmap/--mlock booleans
+// were folded into --load-mode, --batch was renamed --batch-size, and
+// --numa takes a TYPE value.
 //
 // Generation-time parameters (temperature, top_p, max_tokens, ...) are NOT
 // set here; they are passed per-request in the OpenAI HTTP body by Predict.
@@ -55,18 +59,21 @@ func buildLlamaArgs(opts *pb.ModelOptions, bin string, port int) []string {
 	}
 	// Batch size.
 	if opts.NBatch > 0 {
-		args = append(args, "--batch", strconv.FormatInt(int64(opts.NBatch), 10))
+		args = append(args, "--batch-size", strconv.FormatInt(int64(opts.NBatch), 10))
 	}
-	// Memory options.
-	if opts.MLock {
-		args = append(args, "--mlock")
+	// Memory options: --load-mode subsumes the old --mmap/--mlock flags.
+	switch {
+	case opts.MMap && opts.MLock:
+		args = append(args, "--load-mode", "mmap+mlock")
+	case opts.MLock:
+		args = append(args, "--load-mode", "mlock")
+	case opts.MMap:
+		args = append(args, "--load-mode", "mmap")
 	}
-	if opts.MMap {
-		args = append(args, "--mmap")
-	}
-	// NUMA.
+	// NUMA: the flag now takes a TYPE value; distribute is the general
+	// cross-node optimization.
 	if opts.NUMA {
-		args = append(args, "--numa")
+		args = append(args, "--numa", "distribute")
 	}
 	// GPU layers.
 	if opts.NGPULayers > 0 {
