@@ -1,0 +1,85 @@
+# Release workflow — cuts a new version in one step.
+#
+# Trigger manually from the Actions tab ("Release" workflow) and enter the
+# target version (X.Y.Z, no "v" prefix). It then:
+#   1. Bumps the version in metadata.json and gallery.yaml (uri + version).
+#   2. Commits the bump straight to main and pushes.
+#   3. Creates and pushes an annotated git tag v<version>.
+#
+# The existing CI workflow (ci.yaml) is triggered by the tag push and
+# publishes the versioned image to GHCR; the main push publishes :latest.
+# No Docker build happens here — this job is git-only, so it is fast and does
+# not depend on the dind sidecar.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (X.Y.Z, no 'v' prefix)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# Only one release at a time.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Bump version, commit, tag
+    runs-on: localai-beellama-backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Validate version
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be X.Y.Z (e.g. 0.1.2), no 'v' prefix"
+            exit 1
+          fi
+          echo "Releasing v${{ inputs.version }}"
+
+      - name: Guard against no-op / duplicate
+        run: |
+          CURRENT=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' metadata.json)
+          if [[ "$CURRENT" == "${{ inputs.version }}" ]]; then
+            echo "::error::v${{ inputs.version }} is already the current version in metadata.json — nothing to release"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "::error::Tag v${{ inputs.version }} already exists"
+            exit 1
+          fi
+
+      - name: Bump version in metadata.json and gallery.yaml
+        run: |
+          V="${{ inputs.version }}"
+          # metadata.json: "version": "X.Y.Z"
+          sed -i -E 's|("version"[[:space:]]*:[[:space:]]*")[0-9]+(\.[0-9]+)+(")|\1'"$V"'\3|' metadata.json
+          # gallery.yaml: the image uri tag and the version field
+          sed -i -E 's|^(  uri: "ghcr.io/[^:]+:)v[0-9]+(\.[0-9]+)+("$)|\1v'"$V"'\3|' gallery.yaml
+          sed -i -E 's|^(  version: ")[0-9]+(\.[0-9]+)+(")$|\1'"$V"'\3|' gallery.yaml
+          echo "=== metadata.json ===" && cat metadata.json
+          echo "=== gallery.yaml (version lines) ===" && grep -E 'uri:|version:' gallery.yaml
+
+      - name: Commit and push to main
+        run: |
+          git config user.name "Linus (rafelbev's bot)"
+          git config user.email "linus@neo-tix.com"
+          git add metadata.json gallery.yaml
+          git commit -m "release: bump version to ${{ inputs.version }}"
+          git push origin HEAD:main
+
+      - name: Create and push tag
+        run: |
+          git tag -a "v${{ inputs.version }}" -m "release: v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
