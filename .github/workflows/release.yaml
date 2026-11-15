@@ -10,6 +10,11 @@
 # publishes the versioned image to GHCR; the main push publishes :latest.
 # No Docker build happens here — this job is git-only, so it is fast and does
 # not depend on the dind sidecar.
+#
+# IMPORTANT: this job pushes with the RELEASE_PAT secret (not GITHUB_TOKEN).
+# Events created by GITHUB_TOKEN do NOT create new workflow runs (GitHub
+# prevents infinite loops), so a GITHUB_TOKEN push would silently fail to
+# trigger CI. A PAT push does trigger CI, which is what publishes the image.
 name: Release
 
 on:
@@ -38,7 +43,9 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          token: ${{ github.token }}
+          # PAT (not GITHUB_TOKEN): a PAT push triggers CI; GITHUB_TOKEN pushes
+          # do not (GitHub suppresses workflow runs for GITHUB_TOKEN events).
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Validate version
         run: |
