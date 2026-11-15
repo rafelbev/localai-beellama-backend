@@ -14,7 +14,7 @@
 #   /app/llama-server  the bundled server the shim spawns
 
 # --- Stage 1: build the Go shim (static binary) ---
-FROM golang:1.24-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 # protoc + the Go gRPC codegen plugins.
 RUN apk add --no-cache protoc
